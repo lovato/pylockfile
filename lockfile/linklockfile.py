@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import time
 import os
+import os.path
 
 from . import (LockBase, LockFailed, NotLocked, NotMyLock, LockTimeout,
                AlreadyLocked)
@@ -13,7 +14,7 @@ class LinkLockFile(LockBase):
     >>> lock = LinkLockFile('somefile', threaded=False)
     """
 
-    def acquire(self, timeout=None):
+    def acquire(self, timeout=None, expires_in=None):
         try:
             open(self.unique_name, "wb").close()
         except IOError:
@@ -27,7 +28,12 @@ class LinkLockFile(LockBase):
         while True:
             # Try and create a hard link to it.
             try:
+                self.is_locked() #just for expiration check
                 os.link(self.unique_name, self.lock_file)
+                if expires_in is not None:
+                    f = open(self.lock_file,'w')
+                    f.write(str(expires_in))
+                    f.close()
             except OSError:
                 # Link creation failed.  Maybe we've double-locked?
                 nlinks = os.stat(self.unique_name).st_nlink
@@ -60,6 +66,8 @@ class LinkLockFile(LockBase):
         os.unlink(self.lock_file)
 
     def is_locked(self):
+        if self.is_lock_expired():
+            self.break_lock()
         return os.path.exists(self.lock_file)
 
     def i_am_locking(self):
@@ -71,3 +79,32 @@ class LinkLockFile(LockBase):
         if os.path.exists(self.lock_file):
             os.unlink(self.lock_file)
 
+    def get_lock_createtime(self):
+        if os.path.exists(self.lock_file):
+            from datetime import datetime
+            return datetime.strptime(time.ctime(os.path.getctime(self.lock_file)),'%a %b %d %H:%M:%S %Y')
+        else:
+            return None
+         
+    def get_lock_lifetime(self):
+        try:
+            lifetime = open(self.lock_file, 'r').read().strip()
+        except:
+            lifetime = ''
+        if len(lifetime) > 0:
+            return int(lifetime)
+        else:
+            return -1
+    
+    def is_lock_expired(self):
+        if self.get_lock_lifetime() < 0:
+            return False #lock will live forever
+        else:
+            from datetime import timedelta
+            max_valid_time = self.get_lock_createtime() + timedelta(seconds=self.get_lock_lifetime())
+
+            import datetime
+            if datetime.datetime.now() > max_valid_time:
+                return True
+            else:
+                return False
