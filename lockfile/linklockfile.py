@@ -86,6 +86,7 @@ class LinkLockFile(LockBase):
         try:
             if os.path.exists(self.lock_file):
                 c_time = os.path.getctime(self.lock_file)
+                import datetime
                 return datetime.datetime.fromtimestamp(c_time)
             else:
                 return None
