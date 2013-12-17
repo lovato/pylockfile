@@ -15,6 +15,9 @@ class LinkLockFile(LockBase):
     """
 
     def acquire(self, timeout=None, expires_in=None):
+        if expires_in is not None:
+            if expires_in < 1:
+                expires_in = None
         try:
             open(self.unique_name, "wb").close()
         except IOError:
@@ -80,10 +83,14 @@ class LinkLockFile(LockBase):
             os.unlink(self.lock_file)
 
     def get_lock_createtime(self):
-        if os.path.exists(self.lock_file):
-            from datetime import datetime
-            return datetime.strptime(time.ctime(os.path.getctime(self.lock_file)),'%a %b %d %H:%M:%S %Y')
-        else:
+        try:
+            if os.path.exists(self.lock_file):
+                c_time = os.path.getctime(self.lock_file)
+                import datetime
+                return datetime.datetime.fromtimestamp(c_time)
+            else:
+                return None
+        except:
             return None
          
     def get_lock_lifetime(self):
@@ -92,7 +99,10 @@ class LinkLockFile(LockBase):
         except:
             lifetime = ''
         if len(lifetime) > 0:
-            return int(lifetime)
+            if int(lifetime) > 0:
+                return int(lifetime)
+            else:
+                return -1
         else:
             return -1
     
@@ -100,11 +110,13 @@ class LinkLockFile(LockBase):
         if self.get_lock_lifetime() < 0:
             return False #lock will live forever
         else:
-            from datetime import timedelta
-            max_valid_time = self.get_lock_createtime() + timedelta(seconds=self.get_lock_lifetime())
+            try:
+                import datetime
+                max_valid_time = self.get_lock_createtime() + datetime.timedelta(seconds=self.get_lock_lifetime())
 
-            import datetime
-            if datetime.datetime.now() > max_valid_time:
+                if datetime.datetime.now() > max_valid_time:
+                    return True
+                else:
+                    return False
+            except:
                 return True
-            else:
-                return False
