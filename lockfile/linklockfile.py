@@ -32,7 +32,11 @@ class LinkLockFile(LockBase):
             # Try and create a hard link to it.
             try:
                 self.is_locked() #just for expiration check
-                os.link(self.unique_name, self.lock_file)
+                try:
+                    os.link(self.unique_name, self.lock_file)
+                except:
+                    import shutil
+                    shutil.copyfile(self.unique_name, self.lock_file)
                 if expires_in is not None:
                     f = open(self.lock_file,'w')
                     f.write(str(expires_in))
