@@ -162,7 +162,9 @@ class LockBase:
         >>> lock = LockBase('somefile', threaded=False)
         """
         self.path = path
-        self.lock_file = os.path.abspath(path) + ".lock"
+        import tempfile
+        tmp = tempfile.gettempdir()
+        self.lock_file = os.path.join(tmp + '/pylockfile/' + os.path.basename(path) + ".lock")
         self.hostname = socket.gethostname()
         self.pid = os.getpid()
         if threaded:
@@ -174,6 +176,12 @@ class LockBase:
         else:
             self.tname = ""
         dirname = os.path.dirname(self.lock_file)
+        try:
+            os.makedirs(dirname)
+        except:
+            pass
+        os.chmod(dirname, 0o777)
+        
         self.unique_name = os.path.join(dirname,
                                         "%s%s.%s" % (self.hostname,
                                                      self.tname,
