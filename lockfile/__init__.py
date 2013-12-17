@@ -178,9 +178,9 @@ class LockBase:
         dirname = os.path.dirname(self.lock_file)
         try:
             os.makedirs(dirname)
+            os.chmod(dirname, 0o777)
         except:
             pass
-        os.chmod(dirname, 0o777)
         
         self.unique_name = os.path.join(dirname,
                                         "%s%s.%s" % (self.hostname,
