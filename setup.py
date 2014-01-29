@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-V = "0.9.1.5"
+V = "0.9.2.5"
 
 from distutils.core import setup
 setup(name='lockfile',

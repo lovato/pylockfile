@@ -156,15 +156,16 @@ class NotMyLock(UnlockError):
 
 class LockBase:
     """Base class for platform-specific lock classes."""
-    def __init__(self, path, threaded=True, timeout=None):
+    def __init__(self, path, threaded=True, timeout=None, lock_file=None):
         """
         >>> lock = LockBase('somefile')
         >>> lock = LockBase('somefile', threaded=False)
         """
         self.path = path
-        import tempfile
-        tmp = tempfile.gettempdir()
-        self.lock_file = os.path.join(tmp + '/pylockfile/' + os.path.basename(path) + ".lock")
+        self.lock_file = lock_file
+        if not lock_file:
+            self.lock_file = os.path.abspath(path) + ".lock"
+
         self.hostname = socket.gethostname()
         self.pid = os.getpid()
         if threaded:
@@ -177,10 +178,11 @@ class LockBase:
             self.tname = ""
         dirname = os.path.dirname(self.lock_file)
         try:
-            os.makedirs(dirname)
-            os.chmod(dirname, 0o777)
-        except:
-            pass
+            if not os.path.exists(dirname):
+                os.makedirs(dirname)
+                os.chmod(dirname, 0o777)
+        except Exception as e:
+            raise Error("Unable to create dir [%s] [%s]" % (dirname, str(e)))
         
         self.unique_name = os.path.join(dirname,
                                         "%s%s.%s" % (self.hostname,
