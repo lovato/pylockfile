@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 
 import time
@@ -71,7 +73,6 @@ class LinkLockFile(LockBase):
             return
         elif not self.i_am_locking():
             raise NotMyLock("%s is locked, but not by me" % self.path)
-        #os.unlink(self.unique_name)
         self.break_lock()
 
     def is_locked(self):
@@ -114,3 +115,7 @@ class LinkLockFile(LockBase):
             return True
         else:
             return self.get_lock_lifetime() > self.expires_in
+
+    def __del__(self):
+        if os.path.exists(self.unique_name):
+            os.unlink(self.unique_name)
