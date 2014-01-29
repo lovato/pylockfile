@@ -6,7 +6,7 @@ import time
 import os
 import os.path
 import tempfile
-import md5
+import hashlib
 
 from . import (LockBase, LockFailed, NotLocked, NotMyLock, LockTimeout,
                AlreadyLocked)
@@ -21,7 +21,7 @@ class LinkLockFile(LockBase):
     def __init__(self, path, threaded=False, timeout=None, expires_in=0):
 
         tmp = tempfile.gettempdir()
-        path_hash = md5.new(path).hexdigest()
+        path_hash = hashlib.md5(path).hexdigest()
         lock_file = os.path.join('%s/pylockfile/%s.lock' % (tmp, path_hash) )
         self.expires_in = expires_in
         
