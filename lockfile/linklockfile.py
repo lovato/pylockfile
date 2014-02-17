@@ -26,7 +26,11 @@ class LinkLockFile(LockBase):
         self.expires_in = expires_in
         
         LockBase.__init__(self, path, threaded, timeout, lock_file)
-        
+
+        self.create_unique_name_file()
+    
+    def create_unique_name_file(self):
+
         try:
             with open(self.unique_name, "wb") as file:
                 file.write("%d" % os.getpid())
@@ -47,6 +51,9 @@ class LinkLockFile(LockBase):
             
             if not self.is_locked():
                 self.break_lock()
+
+            if not os.path.exists(self.unique_name):
+                self.create_unique_name_file()
 
             try:
                 os.link(self.unique_name, self.lock_file)
